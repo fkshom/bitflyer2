@@ -48,14 +48,14 @@ class Connection:
         self.apisecret = apisecret
         self.timeout = None
 
-    def request(self, method, endpoint, **kwargs):
+    def request(self, method, endpoint, body):
         url = urllib.parse.urljoin(self.url_base, endpoint)
         try:
             with requests.Session() as s:
                 if method == 'GET':
-                    response = s.get(url, params=kwargs, auth=Authentication(self.apikey, self.apisecret), timeout=self.timeout)
+                    response = s.get(url, params=body, auth=Authentication(self.apikey, self.apisecret), timeout=self.timeout)
                 elif method == 'POST':
-                    response = s.post(url, auth=Authentication(self.apikey, self.apisecret), data=json.dumps(kwargs), timeout=self.timeout)
+                    response = s.post(url, auth=Authentication(self.apikey, self.apisecret), data=json.dumps(body), timeout=self.timeout)
                 else:
                     raise NotImplementedError()
 
@@ -69,8 +69,8 @@ class Connection:
 
         return content
 
-    def get(self, endpoint, **kwargs):
-        return self.request('GET', endpoint, **kwargs)
+    def get(self, endpoint, query):
+        return self.request('GET', endpoint, query)
 
-    def post(self, endpoint, **kwargs):
-        return self.request('POST', endpoint, **kwargs)
+    def post(self, endpoint, body):
+        return self.request('POST', endpoint, body)
