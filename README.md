@@ -14,7 +14,7 @@ See https://lightning.bitflyer.jp/docs for details.
 
 From Pypi with the Python package manager:
 
-```sh    
+```sh
 pip install pybitflyer2
 ```
 
@@ -59,6 +59,9 @@ Channel name format is like `{event_name}_{product_code}`. You can set handler t
 #### Private events
 
 To subscribe to the private child_order_events and parent_order_events, pass your API key and secret when creating the realtime_client.
+
+####
+The Realtime Client automatically tries to reconnect when a connection is lost, and provides a variety of event-based notification.
 
 ```py
 import time
