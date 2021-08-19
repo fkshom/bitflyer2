@@ -16,13 +16,14 @@ class RealtimeClient:
                'ETH_BTC', 'BCH_BTC', 'FX_BTC_JPY', 'BTCJPY_MAT1WK', 'BTCJPY_MAT2WK', 'BTCJPY_MAT3M']
     PUBLIC_CHANNEL_NAMES = list(map(lambda x: f"{x[0]}_{x[1]}", product(PUBLIC_EVENT_NAMES, MARKETS)))
     PRIVATE_CHANNEL_NAMES = ['child_order_events', 'parent_order_events']
-    ON_EVENT_NAMES = ['open', 'message', 'error', 'close']
+    ON_EVENT_NAMES = ['open', 'message', 'error', 'close', 'ping', 'pong']
 
     def __init__(self, key=None, secret=None):
         self.endpoint = 'wss://ws.lightstream.bitflyer.com/json-rpc'
         self.ws = websocket.WebSocketApp(
             self.endpoint,
-            on_open=self.on_open, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close
+            on_open=self.on_open, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close,
+            on_ping=self.on_ping, on_pong=self.on_pong,
         )
         self.public_channel_handlers = {}
         self.private_channel_handlers = {}
@@ -64,7 +65,7 @@ class RealtimeClient:
     def run(self, ws):
         logger.info(f"run websocket")
         while True:
-            ws.run_forever(ping_interval=30, ping_timeout=29)
+            ws.run_forever(ping_interval=30, ping_timeout=10)
             time.sleep(3)
 
     def on_open(self, ws):
@@ -110,12 +111,11 @@ class RealtimeClient:
             self.ws.send(json.dumps(params))
 
     def on_error(self, ws, error):
-        logger.info("error")
-        logger.info(error)
+        logger.warn(f"error: {str(error)}")
         self.notify_event('error', error)
 
-    def on_close(self, ws):
-        logger.info("Websocket closed")
+    def on_close(self, ws, close_status_code, close_msg):
+        logger.info(f"Websocket closed. close_status_code:{close_status_code} close_msg:{close_msg}")
         self.notify_event('close')
 
     def on_message(self, ws, raw):
@@ -174,3 +174,11 @@ class RealtimeClient:
             logger.info("Unhandled message")
 
         self.notify_event('message', msg)
+
+    def on_ping(self, wsapp, message):
+        logger.info("Got a ping")
+        self.notify_event('ping', message)
+
+    def on_pong(self, wsapp, message):
+        logger.info("Got a pong")
+        self.notify_event('pong', message)
