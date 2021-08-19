@@ -32,6 +32,7 @@ class RealtimeClient:
         self._secret = secret
 
     def subscribe(self, channel, handler):
+        logger.info(f"Adding subscribe handler for channgel:{channel}")
         if channel in self.PUBLIC_CHANNEL_NAMES:
             self.public_channel_handlers[channel] = handler
         elif channel in self.PRIVATE_CHANNEL_NAMES:
@@ -42,6 +43,7 @@ class RealtimeClient:
             raise Exception(f"Channel name '{channel}' is not supported.")
 
     def on(self, event_name, handler):
+        logger.info(f"Adding event handler for channgel:{event_name}")
         if event_name in self.ON_EVENT_NAMES:
             self.event_handlers[event_name] = handler
         else:
@@ -55,17 +57,20 @@ class RealtimeClient:
             handler()
 
     def start(self):
+        logger.info(f"start thread")
         websocketThread = Thread(target=self.run, args=(self.ws, ))
         websocketThread.start()
 
     def run(self, ws):
+        logger.info(f"run websocket")
         while True:
             ws.run_forever(ping_interval=30, ping_timeout=29)
             time.sleep(3)
 
     def on_open(self, ws):
-        logger.debug("Websocket connected")
+        logger.info("Websocket connected")
         if len(self.public_channel_handlers.keys()) > 0:
+            logger.info(f"send public channgel subscribe request")
             params = [dict(method='subscribe', params=dict(channel=c)) for c in self.public_channel_handlers.keys()]
             self.ws.send(json.dumps(params))
 
@@ -92,6 +97,7 @@ class RealtimeClient:
             'id': self._JSONRPC_ID_AUTH
         }
 
+        logger.info(f"send auth")
         ws.send(json.dumps(params))
 
     def subscribe_channels(self):
@@ -104,16 +110,16 @@ class RealtimeClient:
             self.ws.send(json.dumps(params))
 
     def on_error(self, ws, error):
-        logger.debug("error")
-        logger.debug(error)
+        logger.info("error")
+        logger.info(error)
         self.notify_event('error', error)
 
     def on_close(self, ws):
-        logger.debug("Websocket closed")
+        logger.info("Websocket closed")
         self.notify_event('close')
 
     def on_message(self, ws, raw):
-        logger.debug('Message received')
+        logger.info('Message received')
         msg = json.loads(raw)
         logger.debug(msg)
         # {'jsonrpc': '2.0',
@@ -153,9 +159,10 @@ class RealtimeClient:
             if 'error' in msg:
                 logger.critical('auth error: {}'.format(msg["error"]))
             elif msg.get('result', None):
-                logger.debug("auth success")
+                logger.info("auth success")
                 if len(self.private_channel_handlers.keys()) > 0:
                     params = [dict(method='subscribe', params=dict(channel=c)) for c in self.private_channel_handlers.keys()]
+                    logger.info(f"send private channgel subscribe request")
                     self.ws.send(json.dumps(params))
 
         if msg['method'] == 'channelMessage':
@@ -164,6 +171,6 @@ class RealtimeClient:
             handler = self.public_channel_handlers.get(channel, lambda x: None)
             handler(message)
         else:
-            logger.debug("Unhandled message")
+            logger.info("Unhandled message")
 
         self.notify_event('message', msg)

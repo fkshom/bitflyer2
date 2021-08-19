@@ -52,6 +52,7 @@ class Connection:
         url = urllib.parse.urljoin(self.url_base, endpoint)
         try:
             with requests.Session() as s:
+                logger.debug(f"Requesting to {url}")
                 if method == 'GET':
                     response = s.get(url, params=body, auth=Authentication(self.apikey, self.apisecret), timeout=self.timeout)
                 elif method == 'POST':
